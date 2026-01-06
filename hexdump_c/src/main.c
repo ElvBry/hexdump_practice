@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <string.h>
 
 #define CHUNK_SIZE 16
 
@@ -45,11 +46,6 @@ int main(int argc, char *argv[]) {
     }
 
     const char *filename = argv[optind];
-    if (verbose) {
-        printf("skip=%ld, length=%ld, filename=%s\n",
-            skip, length, filename);
-    }
-
     FILE *fp = fopen(filename, "rb");
     if (fp == NULL) {
         fprintf(stderr, "Unable to open file\n");
@@ -59,6 +55,11 @@ int main(int argc, char *argv[]) {
     if (skip != 0) {
         fseek(fp, skip, SEEK_SET);
     }
+
+    // For verbose = false
+    unsigned char prev_buf[CHUNK_SIZE];
+    bool prev_valid = false;
+    bool skipping = false;
 
     unsigned long offset = ftell(fp);
     unsigned long total_read = 0;
@@ -75,6 +76,17 @@ int main(int argc, char *argv[]) {
         if (n == 0) break;
         total_read += n;
 
+        if (!verbose && prev_valid && n == CHUNK_SIZE && memcmp(buf, prev_buf, CHUNK_SIZE) == 0) {
+            if (!skipping) {
+                printf("*\n");
+                skipping = true;
+            }
+            offset += n;
+            continue;
+        }
+
+        skipping = false;
+
         printf("%08lx  ", offset);   
         for (size_t i = 0; i < CHUNK_SIZE; i++) {
             if (i == CHUNK_SIZE/2) printf(" ");
@@ -89,6 +101,8 @@ int main(int argc, char *argv[]) {
         
         offset = ftell(fp);
         if (length >= 0 && total_read >= (unsigned long)length) break;
+        memcpy(prev_buf, buf, CHUNK_SIZE);
+        prev_valid = true;
     }
     printf("%08lx\n", offset);
     fclose(fp);
