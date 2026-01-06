@@ -67,7 +67,7 @@ int main(int argc, char *argv[]) {
     for (;;) {
         size_t to_read = CHUNK_SIZE;
         
-        if (length >= 0 && total_read + CHUNK_SIZE > length) {
+        if (length >= 0 && total_read + CHUNK_SIZE > (unsigned long)length) {
             to_read = length - total_read;
         }
         
@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
 
         
         offset = ftell(fp);
-        if (length >= 0 && total_read >= length) break;
+        if (length >= 0 && total_read >= (unsigned long)length) break;
     }
     printf("%08lx\n", offset);
     fclose(fp);
